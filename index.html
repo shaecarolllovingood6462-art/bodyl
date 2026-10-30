@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>몸으로 말해요 - 중1 레크리에이션 게임</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js CDN for Web Audio FX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Noto Sans KR & Jua for playful vibe) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .font-game {
+            font-family: 'Jua', 'Noto Sans KR', sans-serif;
+        }
+        .pop-animation {
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.7); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pulse-timer {
+            animation: pulseFast 0.8s infinite;
+        }
+        @keyframes pulseFast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- 상단 네비게이션 & 사운드 토글 -->
+    <header class="w-full px-6 py-4 bg-slate-800/80 backdrop-blur border-b border-slate-700/60 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="goToLobby()">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-rose-500 flex items-center justify-center shadow-lg shadow-rose-500/20 text-white font-game text-xl">
+                🎭
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-game tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-rose-300 to-indigo-300">
+                    몸으로 말해요!
+                </h1>
+                <p class="text-xs text-slate-400 hidden sm:block">중학교 1학년 교실 &amp; 레크리에이션용</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button id="soundToggleBtn" onclick="toggleMute()" class="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 transition flex items-center gap-2 text-sm text-slate-200">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-amber-400"></i>
+                <span id="soundText" class="hidden sm:inline">효과음 ON</span>
+            </button>
+            <button onclick="openRulesModal()" class="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 border border-slate-600 transition flex items-center gap-1.5 text-sm text-slate-200">
+                <i class="fa-regular fa-circle-question text-sky-400"></i>
+                <span class="hidden sm:inline">게임 방법</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 컨테이너 영역 -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 w-full max-w-5xl mx-auto">
+        
+        <!-- 1. 로비 화면 (주제 선택 및 라운드 설정) -->
+        <section id="lobbyScreen" class="w-full flex flex-col items-center gap-6 pop-animation py-4">
+            <div class="text-center max-w-xl">
+                <span class="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-sm font-semibold border border-indigo-500/30 mb-3">
+                    중학교 1학년 맞춤 단어장
+                </span>
+                <h2 class="text-3xl sm:text-5xl font-game mb-2 tracking-wide text-white">
+                    오늘의 주제를 골라보세요!
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base">
+                    제한 시간 동안 몸짓으로 설명하고 친구들이 맞춰보세요.
+                </p>
+            </div>
+
+            <!-- 주제 카드 4종 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full mt-2">
+                
+                <!-- 주제 1: 감정 & 기분 -->
+                <div onclick="selectCategory('emotion')" id="card-emotion" class="category-card cursor-pointer group relative overflow-hidden rounded-3xl bg-gradient-to-b from-pink-600/30 to-purple-800/20 border-2 border-pink-500/30 p-5 hover:border-pink-400 hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between h-56 shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <span class="text-4xl">😆</span>
+                        <span class="text-xs font-bold px-2.5 py-1 bg-pink-500/30 text-pink-300 rounded-full border border-pink-500/40">20단어</span>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-game text-pink-300 group-hover:text-pink-200">감정 &amp; 기분</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">기쁨, 분노, 슬픔, 깜놀 등 표정과 리액션으로 표현</p>
+                    </div>
+                    <div class="text-xs text-pink-400/90 font-medium flex items-center gap-1 mt-2">
+                        <span>선택하기</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </div>
+                </div>
+
+                <!-- 주제 2: 스포츠 & 올림픽 -->
+                <div onclick="selectCategory('sports')" id="card-sports" class="category-card cursor-pointer group relative overflow-hidden rounded-3xl bg-gradient-to-b from-blue-600/30 to-cyan-800/20 border-2 border-blue-500/30 p-5 hover:border-blue-400 hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between h-56 shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <span class="text-4xl">⚽</span>
+                        <span class="text-xs font-bold px-2.5 py-1 bg-blue-500/30 text-blue-300 rounded-full border border-blue-500/40">20단어</span>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-game text-blue-300 group-hover:text-blue-200">스포츠 &amp; 올림픽</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">축구, 양궁, 펜싱 등 동작이 크고 역동적인 스포츠</p>
+                    </div>
+                    <div class="text-xs text-blue-400/90 font-medium flex items-center gap-1 mt-2">
+                        <span>선택하기</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </div>
+                </div>
+
+                <!-- 주제 3: 동물 & 자연 -->
+                <div onclick="selectCategory('animals')" id="card-animals" class="category-card cursor-pointer group relative overflow-hidden rounded-3xl bg-gradient-to-b from-emerald-600/30 to-teal-800/20 border-2 border-emerald-500/30 p-5 hover:border-emerald-400 hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between h-56 shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <span class="text-4xl">🦁</span>
+                        <span class="text-xs font-bold px-2.5 py-1 bg-emerald-500/30 text-emerald-300 rounded-full border border-emerald-500/40">20단어</span>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-game text-emerald-300 group-hover:text-emerald-200">동물 &amp; 자연</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">미어캣, 판다, 티라노사우루스 등 특징이 확실한 동물</p>
+                    </div>
+                    <div class="text-xs text-emerald-400/90 font-medium flex items-center gap-1 mt-2">
+                        <span>선택하기</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </div>
+                </div>
+
+                <!-- 주제 4: 장소 & 공간 -->
+                <div onclick="selectCategory('places')" id="card-places" class="category-card cursor-pointer group relative overflow-hidden rounded-3xl bg-gradient-to-b from-amber-600/30 to-orange-800/20 border-2 border-amber-500/30 p-5 hover:border-amber-400 hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between h-56 shadow-xl">
+                    <div class="flex justify-between items-start">
+                        <span class="text-4xl">🏰</span>
+                        <span class="text-xs font-bold px-2.5 py-1 bg-amber-500/30 text-amber-300 rounded-full border border-amber-500/40">20단어</span>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-game text-amber-300 group-hover:text-amber-200">장소 &amp; 공간</h3>
+                        <p class="text-xs text-slate-300 mt-1 leading-relaxed">놀이공원, 치과, 수영장 등 장소만의 특징적 행동</p>
+                    </div>
+                    <div class="text-xs text-amber-400/90 font-medium flex items-center gap-1 mt-2">
+                        <span>선택하기</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 게임 설정 옵션 (제한시간, 팀 이름 등) -->
+            <div class="w-full max-w-xl bg-slate-800/90 border border-slate-700 p-5 rounded-3xl flex flex-col sm:flex-row gap-4 justify-between items-center mt-2 shadow-2xl">
+                <div class="flex flex-col gap-1 w-full sm:w-auto">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">제한 시간 설정</span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="setTimeLimit(60)" class="time-btn px-4 py-2 rounded-xl text-sm font-bold bg-slate-700 hover:bg-slate-600 transition" data-time="60">60초</button>
+                        <button type="button" onclick="setTimeLimit(90)" class="time-btn px-4 py-2 rounded-xl text-sm font-bold bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition" data-time="90">90초 (추천)</button>
+                        <button type="button" onclick="setTimeLimit(120)" class="time-btn px-4 py-2 rounded-xl text-sm font-bold bg-slate-700 hover:bg-slate-600 transition" data-time="120">120초</button>
+                    </div>
+                </div>
+
+                <div class="w-full sm:w-auto flex justify-end">
+                    <button onclick="startGame()" id="startBtn" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-game text-xl tracking-wide font-extrabold shadow-xl shadow-emerald-500/25 hover:from-emerald-400 hover:to-teal-300 transform active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play text-lg"></i>
+                        <span>게임 시작하기</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 게임 플레이 화면 -->
+        <section id="gameScreen" class="hidden w-full max-w-3xl flex flex-col items-center gap-5 pop-animation">
+            
+            <!-- 상단 바: 주제 배지, 타이머, 현황 카운터 -->
+            <div class="w-full flex items-center justify-between gap-3 bg-slate-800/90 border border-slate-700/80 px-5 py-3 rounded-2xl shadow-lg">
+                <div class="flex items-center gap-2">
+                    <span id="gameCategoryBadge" class="px-3 py-1 bg-pink-500/20 text-pink-300 border border-pink-500/40 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                        🎤 아이돌 &amp; K-POP
+                    </span>
+                    <span class="text-xs text-slate-400 font-medium hidden sm:inline" id="wordProgress">문제 1 / 20</span>
+                </div>
+
+                <!-- 중앙 타이머 -->
+                <div class="flex items-center gap-2">
+                    <div id="timerContainer" class="px-4 py-1.5 rounded-2xl bg-slate-900 border border-slate-700 flex items-center gap-2 text-indigo-300 font-mono font-black text-2xl tracking-wider">
+                        <i class="fa-regular fa-clock text-base text-indigo-400"></i>
+                        <span id="timerText">01:30</span>
+                    </div>
+                </div>
+
+                <!-- 현재 맞춘 개수 -->
+                <div class="flex items-center gap-2 text-emerald-400 font-game text-lg sm:text-xl">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span id="scoreText">0 점</span>
+                </div>
+            </div>
+
+            <!-- 대형 제시어 디스플레이 카드 -->
+            <div class="w-full relative min-h-[300px] sm:min-h-[360px] bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-slate-700 rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xl overflow-hidden">
+                
+                <!-- 배경 장식 글로우 -->
+                <div class="absolute -top-24 -left-24 w-60 h-60 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-24 -right-24 w-60 h-60 bg-pink-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="text-slate-400 font-medium text-xs sm:text-sm mb-2 uppercase tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    몸짓으로만 표현하세요! (말하기 금지)
+                </div>
+
+                <!-- 실제 제시어 -->
+                <h2 id="currentWord" class="text-5xl sm:text-7xl font-game tracking-wider my-4 text-white drop-shadow-md select-all">
+                    제시어 로딩중
+                </h2>
+
+                <!-- 힌트 태그 / 카테고리 디테일 -->
+                <div id="wordHint" class="mt-2 px-4 py-1.5 rounded-full bg-slate-700/60 border border-slate-600 text-slate-300 text-sm font-medium">
+                    힌트: -
+                </div>
+
+                <!-- 하단 패스/남은 패스 횟수 -->
+                <div class="absolute bottom-4 left-6 text-xs text-slate-400">
+                    패스한 단어: <span id="passCount" class="text-rose-400 font-bold">0</span>개
+                </div>
+                <div class="absolute bottom-4 right-6 text-xs text-slate-400">
+                    남은 제시어: <span id="remainingWordsCount" class="text-indigo-400 font-bold">19</span>개
+                </div>
+            </div>
+
+            <!-- 컨트롤 버튼부 (정답 / 패스) -->
+            <div class="grid grid-cols-2 gap-4 w-full">
+                <!-- 패스 버튼 -->
+                <button onclick="handlePass()" class="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 text-rose-400 font-game text-xl sm:text-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-forward-step"></i>
+                    <span>패스 (PASS)</span>
+                </button>
+
+                <!-- 정답 버튼 -->
+                <button onclick="handleCorrect()" class="py-4 sm:py-5 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-slate-950 font-game text-xl sm:text-2xl shadow-xl shadow-emerald-500/20 transition transform active:scale-95 flex items-center justify-center gap-3 font-extrabold">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>정답! (CORRECT)</span>
+                </button>
+            </div>
+
+            <!-- 보조 제어: 일시정지, 게임 포기 -->
+            <div class="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                <button onclick="togglePause()" id="pauseBtn" class="hover:text-white underline underline-offset-4 flex items-center gap-1">
+                    <i class="fa-solid fa-pause"></i> <span>일시 정지</span>
+                </button>
+                <span>•</span>
+                <button onclick="confirmExitGame()" class="hover:text-rose-400 underline underline-offset-4 flex items-center gap-1">
+                    <i class="fa-solid fa-xmark"></i> <span>게임 중단하고 로비로</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 3. 결과 화면 (스코어보드 & 정답 목록) -->
+        <section id="resultScreen" class="hidden w-full max-w-2xl flex flex-col items-center gap-6 pop-animation py-4">
+            <div class="text-center">
+                <span class="text-5xl mb-2 inline-block">🎉</span>
+                <h2 class="text-3xl sm:text-4xl font-game text-white">게임 종료! 수고하셨습니다</h2>
+                <p class="text-slate-300 text-sm mt-1" id="resultSubtitle">이번 라운드 팀의 멋진 결과입니다!</p>
+            </div>
+
+            <!-- 스코어 요약 카드 -->
+            <div class="w-full bg-slate-800/90 border border-slate-700 rounded-3xl p-6 shadow-2xl flex flex-col gap-6">
+                <div class="grid grid-cols-3 gap-3 text-center border-b border-slate-700/70 pb-6">
+                    <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/50">
+                        <span class="text-xs text-slate-400 block mb-1">맞힌 개수</span>
+                        <span id="finalScore" class="text-3xl sm:text-4xl font-game text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/50">
+                        <span class="text-xs text-slate-400 block mb-1">패스한 개수</span>
+                        <span id="finalPass" class="text-3xl sm:text-4xl font-game text-rose-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-2xl border border-slate-700/50">
+                        <span class="text-xs text-slate-400 block mb-1">남은 시간</span>
+                        <span id="finalRemainingTime" class="text-3xl sm:text-4xl font-mono font-bold text-sky-400">0s</span>
+                    </div>
+                </div>
+
+                <!-- 플레이 결과 리스트 (맞힌 단어 vs 패스한 단어) -->
+                <div>
+                    <h4 class="text-sm font-bold text-slate-300 mb-3 flex items-center justify-between">
+                        <span>단어 기록표</span>
+                        <span class="text-xs font-normal text-slate-400" id="resultCategoryLabel">주제: -</span>
+                    </h4>
+                    <div id="wordHistoryList" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1 pr-2">
+                        <!-- 동적으로 주입됨 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 액션 버튼 -->
+            <div class="flex flex-col sm:flex-row gap-3 w-full">
+                <button onclick="restartSameCategory()" class="flex-1 py-4 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-game text-lg shadow-xl shadow-indigo-600/25 transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>이 주제 다시하기</span>
+                </button>
+                <button onclick="goToLobby()" class="flex-1 py-4 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-600 font-game text-lg transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-list"></i>
+                    <span>다른 주제 고르기</span>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 게임 설명 모달 -->
+    <div id="rulesModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <h3 class="text-xl font-game text-amber-300 flex items-center gap-2">
+                    <i class="fa-solid fa-book-open"></i> '몸으로 말해요' 게임 규칙
+                </h3>
+                <button onclick="closeRulesModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="text-sm text-slate-300 space-y-3 leading-relaxed">
+                <p>1. <strong>절대 말이나 소리를 내면 안 됩니다.</strong> 입모양으로 힌트를 주거나 글자를 손으로 허공에 써도 반칙입니다.</p>
+                <p>2. 오직 <strong>표정, 몸짓, 동작</strong>만으로 친구들에게 제시어를 전달하세요.</p>
+                <p>3. 주변의 사물을 직접 가리키거나 옷/물건을 이용하는 것은 사전에 규칙을 정해 진행하세요.</p>
+                <p>4. 너무 어려운 제시어는 망설이지 말고 <strong>'패스'</strong> 버튼을 눌러 다음 단어로 넘어가세요.</p>
+                <p>5. 제한 시간 안에 가장 많은 문제를 맞힌 조나 팀이 승리합니다!</p>
+            </div>
+            <button onclick="closeRulesModal()" class="mt-2 w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition">
+                확인했습니다!
+            </button>
+        </div>
+    </div>
+
+    <!-- 확인용 미니 모달 (중단 확인) -->
+    <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl flex flex-col gap-3 text-center">
+            <div class="text-3xl text-amber-400">⚠️</div>
+            <h4 class="font-game text-xl text-white">게임을 중단하시겠습니까?</h4>
+            <p class="text-xs text-slate-300">진행 중인 점수와 단어 기록이 초기화됩니다.</p>
+            <div class="flex gap-2 mt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-sm font-semibold">계속하기</button>
+                <button onclick="exitToLobbyConfirmed()" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-sm font-semibold text-white">그만하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="w-full text-center py-3 text-xs text-slate-500 border-t border-slate-800">
+        중학교 1학년 레크리에이션 | 몸으로 말해요 제시어 생성기
+    </footer>
+
+    <!-- 자바스크립트 로직 -->
+    <script>
+        /* =========================================================
+           1. 제시어 데이터베이스 (주제 4개, 각 20개 총 80단어)
+           직관적이고 빠르게 몸으로 표현할 수 있는 단순한 단어로 구성
+        ========================================================= */
+        const WORD_DATABASE = {
+            emotion: {
+                title: "감정 & 기분",
+                badgeIcon: "😆",
+                themeColor: "pink",
+                words: [
+                    { word: "행복", hint: "활짝 웃으며 온몸으로 신나하기" },
+                    { word: "분노 (화남)", hint: "주먹 쥐고 씩씩대며 발 동동 구르기" },
+                    { word: "슬픔 (눈물)", hint: "얼굴 가리고 엉엉 우는 시늉" },
+                    { word: "깜짝 놀람", hint: "눈과 입을 크게 벌리고 뒤로 주춤" },
+                    { word: "부끄러움", hint: "두 손으로 얼굴 가리고 배배 꼬기" },
+                    { word: "무서움 (공포)", hint: "몸을 웅크리고 덜덜 떨기" },
+                    { word: "짜증", hint: "머리 헝클어뜨리며 한숨 푹 쉬기" },
+                    { word: "설렘 (두근두근)", hint: "가슴에 손 얹고 콩닥콩닥 표현" },
+                    { word: "귀찮음", hint: "축 늘어져서 손 하나 까딱 안 하기" },
+                    { word: "의심", hint: "눈을 가늘게 뜨고 째려보기" },
+                    { word: "자신감", hint: "가슴 쫙 펴고 당당하게 턱 치켜들기" },
+                    { word: "통곡 (오열)", hint: "바닥 치면서 대성통곡하기" },
+                    { word: "답답함", hint: "가슴을 주먹으로 탕탕 치기" },
+                    { word: "피곤함", hint: "하품 길게 하고 고개 푹 숙이기" },
+                    { word: "질투", hint: "입술 삐쭉 내밀고 흘겨보기" },
+                    { word: "긴장 (초조)", hint: "손톱 물어뜯으며 안절부절못하기" },
+                    { word: "뿌듯함", hint: "엄지 척 올리고 흡족한 미소" },
+                    { word: "억울함", hint: "가슴 치며 발 동동 억울한 표정" },
+                    { word: "신남 (흥분)", hint: "두 팔 흔들며 방방 뛰기" },
+                    { word: "사랑", hint: "하트 날리고 눈에서 꿀 떨어지기" }
+                ]
+            },
+            sports: {
+                title: "스포츠 & 올림픽",
+                badgeIcon: "⚽",
+                themeColor: "blue",
+                words: [
+                    { word: "축구", hint: "공을 발로 뻥 차는 동작" },
+                    { word: "농구", hint: "드리블하다가 점프 슛 쏘기" },
+                    { word: "야구", hint: "배트 잡고 홈런 스윙 휘두르기" },
+                    { word: "양궁", hint: "활시위 당겨 쏘기" },
+                    { word: "수영", hint: "양팔을 앞으로 크게 저으며 전진" },
+                    { word: "복싱 (권투)", hint: "가드 올리고 주먹 잽 날리기" },
+                    { word: "볼링", hint: "뒤로 팔 뺐다가 공 굴리기" },
+                    { word: "탁구", hint: "작은 라켓으로 통통 치기" },
+                    { word: "배구", hint: "두 팔 모아 언더토스 받기" },
+                    { word: "태권도", hint: "기합 넣으며 앞차기 얍!" },
+                    { word: "펜싱", hint: "칼 쥐고 앞으로 찌르기" },
+                    { word: "스케이트", hint: "손 뒤짐 지고 얼음판 지치기" },
+                    { word: "골프", hint: "채 잡고 땅 보며 부드러운 스윙" },
+                    { word: "역도", hint: "무거운 쇠봉을 머리 위로 번쩍!" },
+                    { word: "줄넘기", hint: "줄 돌리며 콩콩 뛰기" },
+                    { word: "스키", hint: "폴대 잡고 무릎 굽혀 타기" },
+                    { word: "훌라후프", hint: "허리를 빙글빙글 돌리기" },
+                    { word: "달리기", hint: "팔 흔들며 제자리 전속력 질주" },
+                    { word: "씨름", hint: "허리 숙이고 샅바 잡는 자세" },
+                    { word: "사격", hint: "한 눈 감고 총 겨누기" }
+                ]
+            },
+            animals: {
+                title: "동물 & 자연",
+                badgeIcon: "🦁",
+                themeColor: "emerald",
+                words: [
+                    { word: "호랑이 (사자)", hint: "손톱 세우고 어흥 포효하기" },
+                    { word: "토끼", hint: "머리에 두 귀 쫑긋 세우고 깡총" },
+                    { word: "원숭이", hint: "한 손으로 머리 긁고 옆구리 긁기" },
+                    { word: "코끼리", hint: "한 팔로 긴 코 만들고 흔들기" },
+                    { word: "기린", hint: "두 손 높이 올려 목 길게 만들기" },
+                    { word: "캥거루", hint: "앞발 모으고 통통 뛰어다니기" },
+                    { word: "펭귄", hint: "양손 옆으로 붙이고 뒤뚱뒤뚱" },
+                    { word: "개구리", hint: "쪼그려 앉았다가 높이 점프" },
+                    { word: "뱀", hint: "바닥이나 허공에서 스르륵 기어가기" },
+                    { word: "독수리", hint: "양팔을 큰 날개처럼 펄럭이기" },
+                    { word: "돼지", hint: "코를 손가락으로 들어올려 돼지코 만들기" },
+                    { word: "고양이", hint: "손으로 볼 수염 만지고 고양이 손짓" },
+                    { word: "강아지", hint: "손 모아 멍멍 꼬리 흔들기" },
+                    { word: "판다", hint: "앉아서 대나무 맛있게 씹어먹기" },
+                    { word: "카멜레온", hint: "양 눈 따로 굴리고 긴 혀 쑥 내밀기" },
+                    { word: "상어", hint: "머리 위에 한 손으로 상어 지느러미 세우기" },
+                    { word: "나무늘보", hint: "모든 동작을 아주아주 느리게 하기" },
+                    { word: "비둘기", hint: "목을 앞뒤로 까딱거리기" },
+                    { word: "꽃게", hint: "양손으로 집게발 만들고 옆으로 걷기" },
+                    { word: "문어", hint: "흐물흐물 몸을 흐느적거리기" }
+                ]
+            },
+            places: {
+                title: "장소 & 공간",
+                badgeIcon: "🏰",
+                themeColor: "amber",
+                words: [
+                    { word: "놀이공원 (롤러코스터)", hint: "안전바 잡고 무서워서 소리 지르기" },
+                    { word: "치과", hint: "아 벌리고 누워 위이잉 기계 소리에 긴장" },
+                    { word: "수영장", hint: "수경 쓰고 물장구치며 첨벙" },
+                    { word: "영화관", hint: "팝콘 먹으며 콜라 빨대로 마시기" },
+                    { word: "노래방", hint: "마이크 쥐고 화면 보며 열창하기" },
+                    { word: "찜질방", hint: "양머리 수건 쓰고 식혜 마시기" },
+                    { word: "경찰서 (감옥)", hint: "수갑 차고 철창 잡고 흔들기" },
+                    { word: "미용실", hint: "가위로 싹둑싹둑 머리 자르고 거울 보기" },
+                    { word: "도서관", hint: "쉿! 손가락 입에 대고 조용히 책 넘기기" },
+                    { word: "공항 (비행기)", hint: "캐리어 끌고 가다가 비행기 타기" },
+                    { word: "병원 (응급실)", hint: "주사 엉덩이에 맞고 아파하기" },
+                    { word: "무인도", hint: "주변 둘러보고 살려달라 손 흔들기" },
+                    { word: "스키장", hint: "추워서 몸 떨며 눈사람 만들기" },
+                    { word: "마트 (슈퍼)", hint: "카트 밀며 물건 집어 담기" },
+                    { word: "피시방", hint: "마우스 광클하며 키보드 두드리기" },
+                    { word: "사우나 (목욕탕)", hint: "뜨거운 물에 들어가서 어우 시원하다" },
+                    { word: "동물원", hint: "울타리 너머 동물 구경하고 사진 찍기" },
+                    { word: "캠핑장", hint: "텐트 치고 모닥불에 마시멜로 굽기" },
+                    { word: "분식집", hint: "떡볶이 콕 찍어 먹고 매워하기" },
+                    { word: "헬스장", hint: "아령 들고 끙끙 무겁게 들기" }
+                ]
+            }
+        };
+
+        /* =========================================================
+           2. 전역 상태 (게임 변수)
+           ========================================================= */
+        let currentCategoryKey = "emotion";
+        let timeLimitSeconds = 90;
+        let remainingSeconds = 90;
+        let timerInterval = null;
+        let isPaused = false;
+        let isMuted = false;
+
+        let activeWordDeck = [];
+        let currentWordIndex = 0;
+        let correctWords = [];
+        let passedWords = [];
+
+        /* =========================================================
+           3. Tone.js 기반 사운드 시스템 (외부 오디오 파일 불필요)
+           ========================================================= */
+        let synth = null;
+        let polySynth = null;
+
+        function initAudio() {
+            if (!synth) {
+                try {
+                    synth = new Tone.Synth({
+                        oscillator: { type: "triangle" },
+                        envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 }
+                    }).toDestination();
+
+                    polySynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                } catch(e) {
+                    console.warn("Tone.js init delayed or not allowed yet:", e);
+                }
+            }
+        }
+
+        function playSound(type) {
+            if (isMuted) return;
+            try {
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                initAudio();
+
+                const now = Tone.now();
+                if (type === 'correct') {
+                    // 기분 좋은 2음 화음 딩동!
+                    polySynth.triggerAttackRelease(["C5", "G5"], "8n", now);
+                } else if (type === 'pass') {
+                    // 낮은 퉁- 소리
+                    synth.triggerAttackRelease("G3", "16n", now);
+                } else if (type === 'tick') {
+                    // 시계 째깍 소리
+                    synth.triggerAttackRelease("C6", "32n", now, 0.2);
+                } else if (type === 'urgent') {
+                    // 촉박 경고 비프음
+                    synth.triggerAttackRelease("F5", "16n", now, 0.4);
+                } else if (type === 'gameover') {
+                    // 게임 종료 팡파레
+                    polySynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "4n", now);
+                }
+            } catch(e) {
+                // 사운드 실패시 무시
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const soundIcon = document.getElementById('soundIcon');
+            const soundText = document.getElementById('soundText');
+            if (isMuted) {
+                soundIcon.className = "fa-solid fa-volume-xmark text-slate-400";
+                soundText.textContent = "효과음 OFF";
+            } else {
+                soundIcon.className = "fa-solid fa-volume-high text-amber-400";
+                soundText.textContent = "효과음 ON";
+                playSound('tick');
+            }
+        }
+
+        /* =========================================================
+           4. 화면 전환 & 로비 설정
+           ========================================================= */
+        function selectCategory(categoryKey) {
+            currentCategoryKey = categoryKey;
+            
+            // 모든 카드의 테두리 강조 초기화
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('ring-4', 'ring-indigo-400', 'ring-offset-2', 'ring-offset-slate-900');
+            });
+            
+            // 선택된 카드 강조
+            const selectedCard = document.getElementById(`card-${categoryKey}`);
+            if (selectedCard) {
+                selectedCard.classList.add('ring-4', 'ring-indigo-400', 'ring-offset-2', 'ring-offset-slate-900');
+            }
+
+            playSound('tick');
+        }
+
+        function setTimeLimit(seconds) {
+            timeLimitSeconds = seconds;
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                if (parseInt(btn.getAttribute('data-time')) === seconds) {
+                    btn.className = "time-btn px-4 py-2 rounded-xl text-sm font-bold bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition";
+                } else {
+                    btn.className = "time-btn px-4 py-2 rounded-xl text-sm font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 transition";
+                }
+            });
+            playSound('tick');
+        }
+
+        // 배열 무작위 셔플 (Fisher-Yates 알고리즘)
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        /* =========================================================
+           5. 게임 시작 및 라운드 루프
+           ========================================================= */
+        function startGame() {
+            Tone.start();
+            initAudio();
+
+            const catData = WORD_DATABASE[currentCategoryKey];
+            activeWordDeck = shuffleArray(catData.words);
+            currentWordIndex = 0;
+            correctWords = [];
+            passedWords = [];
+            remainingSeconds = timeLimitSeconds;
+            isPaused = false;
+
+            // UI 배지 업데이트
+            const badge = document.getElementById('gameCategoryBadge');
+            badge.textContent = `${catData.badgeIcon} ${catData.title}`;
+
+            // 화면 전환
+            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+
+            updateStatsDisplay();
+            displayCurrentWord();
+            startTimer();
+            playSound('correct');
+        }
+
+        function displayCurrentWord() {
+            if (currentWordIndex >= activeWordDeck.length) {
+                endGame();
+                return;
+            }
+
+            const item = activeWordDeck[currentWordIndex];
+            const wordEl = document.getElementById('currentWord');
+            const hintEl = document.getElementById('wordHint');
+
+            // 깜빡임 팝 애니메이션 재실행
+            wordEl.parentElement.classList.remove('pop-animation');
+            void wordEl.parentElement.offsetWidth; // 트리거 리플로우
+            wordEl.parentElement.classList.add('pop-animation');
+
+            wordEl.textContent = item.word;
+            hintEl.textContent = `💡 동작 팁: ${item.hint}`;
+
+            updateStatsDisplay();
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('scoreText').textContent = `${correctWords.length} 점`;
+            document.getElementById('wordProgress').textContent = `문제 ${currentWordIndex + 1} / ${activeWordDeck.length}`;
+            document.getElementById('passCount').textContent = passedWords.length;
+            document.getElementById('remainingWordsCount').textContent = activeWordDeck.length - currentWordIndex - 1;
+        }
+
+        function handleCorrect() {
+            if (currentWordIndex >= activeWordDeck.length) return;
+            const item = activeWordDeck[currentWordIndex];
+            correctWords.push(item);
+            playSound('correct');
+
+            currentWordIndex++;
+            displayCurrentWord();
+        }
+
+        function handlePass() {
+            if (currentWordIndex >= activeWordDeck.length) return;
+            const item = activeWordDeck[currentWordIndex];
+            passedWords.push(item);
+            playSound('pass');
+
+            currentWordIndex++;
+            displayCurrentWord();
+        }
+
+        /* =========================================================
+           6. 타이머 관리
+           ========================================================= */
+        function formatTime(totalSec) {
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            renderTimer();
+
+            timerInterval = setInterval(() => {
+                if (isPaused) return;
+
+                remainingSeconds--;
+                renderTimer();
+
+                if (remainingSeconds <= 10 && remainingSeconds > 0) {
+                    playSound('urgent');
+                } else if (remainingSeconds > 10 && remainingSeconds % 10 === 0) {
+                    playSound('tick');
+                }
+
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function renderTimer() {
+            const timerText = document.getElementById('timerText');
+            const timerContainer = document.getElementById('timerContainer');
+            timerText.textContent = formatTime(remainingSeconds);
+
+            if (remainingSeconds <= 10) {
+                timerContainer.classList.add('pulse-timer', 'border-rose-500', 'text-rose-400');
+                timerContainer.classList.remove('border-slate-700', 'text-indigo-300');
+            } else {
+                timerContainer.classList.remove('pulse-timer', 'border-rose-500', 'text-rose-400');
+                timerContainer.classList.add('border-slate-700', 'text-indigo-300');
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (isPaused) {
+                pauseBtn.innerHTML = `<i class="fa-solid fa-play"></i> <span>게임 재개</span>`;
+                pauseBtn.classList.add('text-amber-400');
+            } else {
+                pauseBtn.innerHTML = `<i class="fa-solid fa-pause"></i> <span>일시 정지</span>`;
+                pauseBtn.classList.remove('text-amber-400');
+            }
+        }
+
+        /* =========================================================
+           7. 게임 종료 & 결과 리포트
+           ========================================================= */
+        function endGame() {
+            clearInterval(timerInterval);
+            playSound('gameover');
+
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.remove('hidden');
+
+            // 점수 바인딩
+            document.getElementById('finalScore').textContent = `${correctWords.length}개`;
+            document.getElementById('finalPass').textContent = `${passedWords.length}개`;
+            document.getElementById('finalRemainingTime').textContent = `${remainingSeconds}초`;
+
+            const catData = WORD_DATABASE[currentCategoryKey];
+            document.getElementById('resultCategoryLabel').textContent = `주제: ${catData.title}`;
+
+            // 서브타이틀 동적 문구
+            const sub = document.getElementById('resultSubtitle');
+            if (correctWords.length >= 15) {
+                sub.textContent = "🏆 완벽한 호흡! 전설적인 마임 천재 조입니다!";
+            } else if (correctWords.length >= 10) {
+                sub.textContent = "👏 대단해요! 척하면 착, 통하는 단짝 팀이네요!";
+            } else {
+                sub.textContent = "🔥 멋진 도전이었습니다! 다음엔 더 많이 맞춰봐요!";
+            }
+
+            // 단어 리스트 렌더링
+            const historyContainer = document.getElementById('wordHistoryList');
+            historyContainer.innerHTML = "";
+
+            if (correctWords.length === 0 && passedWords.length === 0) {
+                historyContainer.innerHTML = `<span class="text-xs text-slate-500">진행된 문제가 없습니다.</span>`;
+                return;
+            }
+
+            // 맞힌 단어 칩
+            correctWords.forEach(item => {
+                const chip = document.createElement('div');
+                chip.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold";
+                chip.innerHTML = `<i class="fa-solid fa-check text-[10px]"></i> ${item.word}`;
+                historyContainer.appendChild(chip);
+            });
+
+            // 패스한 단어 칩
+            passedWords.forEach(item => {
+                const chip = document.createElement('div');
+                chip.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-medium";
+                chip.innerHTML = `<i class="fa-solid fa-xmark text-[10px]"></i> ${item.word}`;
+                historyContainer.appendChild(chip);
+            });
+        }
+
+        function restartSameCategory() {
+            startGame();
+        }
+
+        function goToLobby() {
+            clearInterval(timerInterval);
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.add('hidden');
+            document.getElementById('lobbyScreen').classList.remove('hidden');
+            selectCategory(currentCategoryKey);
+        }
+
+        function confirmExitGame() {
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+        }
+
+        function exitToLobbyConfirmed() {
+            closeConfirmModal();
+            goToLobby();
+        }
+
+        function openRulesModal() {
+            document.getElementById('rulesModal').classList.remove('hidden');
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rulesModal').classList.add('hidden');
+        }
+
+        /* =========================================================
+           8. 키보드 단축키 지원 (교실 스마트보드/키보드 편의기능)
+           - Space / Enter : 정답 (Correct)
+           - P / Backspace : 패스 (Pass)
+           ========================================================= */
+        window.addEventListener('keydown', (e) => {
+            const isGameActive = !document.getElementById('gameScreen').classList.contains('hidden');
+            if (!isGameActive) return;
+
+            if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault();
+                handleCorrect();
+            } else if (e.code === 'KeyP' || e.code === 'Backspace') {
+                e.preventDefault();
+                handlePass();
+            }
+        });
+
+        // 초기화
+        window.onload = function() {
+            selectCategory('emotion');
+        };
+    </script>
+</body>
+</html>
